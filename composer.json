@@ -1,0 +1,22 @@
+{
+    "name": "silasmontgomery/yts-api-wrapper",
+    "description": "An API wrapper for the YTS torrent search API",
+    "version": "1.0.0-dev",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Silas Montgomery",
+            "email": "nomsalis@reticent.net"
+        }
+    ],
+    "autoload": {
+        "classmap": [
+            "src/"
+        ],
+        "psr-4": {"silasmontgomery\\YtsApi\\": "src/"}
+    },
+    "require": {
+        "curl/curl": "^2.2"
+    }
+}
