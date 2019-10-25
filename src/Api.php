@@ -39,7 +39,7 @@ class Api
         ]
     ];
 
-    public function __construct(string $url = "https://yta.ae", array $trackers = [], int $api_version = 2, bool $debug = false)
+    public function __construct(string $url = "https://yts.ae", array $trackers = [], int $api_version = 2, bool $debug = false)
     {
         $this->debug = $debug;
         $this->url = $url;
@@ -49,7 +49,7 @@ class Api
         $this->trackers = array_merge($this->trackers, $trackers);
     }
 
-    public function torrentSearch(string $query, int $page = 1, int $limit = 50): string
+    public function search(string $query, int $page = 1, int $limit = 50): object
     {
         return $this->getData('list_movies', [
             'query_term' => $query,
@@ -58,8 +58,17 @@ class Api
         ]);
     }
 
-    private function getData(string $endpoint, array $params = null): string
+    private function getData(string $endpoint, array $params = null): object
     {
+        $result = (object)[
+            'ok' => false,
+            'message' => null,
+            'torrents' => [],
+            'count' => 0,
+            'page' => null,
+            'limit' => null
+        ];
+
         $query_parts = [];
         if (!is_null($params)) {
             foreach ($params as $param => $value) {
@@ -79,29 +88,38 @@ class Api
         }
 
         if ($this->curl->error) {
-            return $this->errorMessage();
+            $result['message'] = $this->errorMessage();
+            return $result;
         }
 
-        // Create and add magnet links
-        $movies = [];
-        $response = json_decode($this->curl->response, true);
-        if ($response['status'] == "ok") {
-            if (isset($response['data']) && isset($response['data']['movies'])) {
-                foreach ($response['data']['movies'] as $movie) {
-                    $torrents = [];
-                    foreach ($movie['torrents'] as $torrent) {
-                        $torrent['magnet'] = "magnet:?xt=urn:btih:" . $torrent['hash'] . "&dn=" .
-                            urlencode($movie['title']) . "&tr=" . implode('&tr', $this->trackers);
-                        $torrents[] = $torrent;
+        // Fetch query response and update result
+        $response = json_decode($this->curl->response);
+        if ($response->status == "ok") {
+            $result->ok = true;
+            $torrents = [];
+            if (isset($response->data) && isset($response->data->movies)) {
+                $result->count = $response->data->movie_count;
+                $result->page = $response->data->page_number;
+                $result->limit = $response->data->limit;
+                // Parse movies and create individual results for each movie/torrent combo
+                foreach ($response->data->movies as $movie) {
+                    foreach ($movie->torrents as $one) {
+                        $torrent['title'] = "$movie->title_long ($one->type / $one->quality)";
+                        $torrent['size'] = $one->size;
+                        $torrent['magnet'] = "magnet:?xt=urn:btih:" . $one->hash . "&dn=" .
+                            urlencode($movie->title_long) . "&tr=" . implode('&tr', $this->trackers);
+                        $torrent['seeds'] = $one->seeds;
+                        $torrent['peers'] = $one->peers;
+                        $torrents[] = (object)$torrent;
                     }
-                    $movie['torrents'] = $torrents;
-                    $movies[] = $movie;
                 }
-                $response['data']['movies'] = $movies;
+                $result->torrents = $torrents;
             }
         }
+        // Set status message from YTS
+        $result->message = $response->status_message;
         
-        return json_encode($response);
+        return $result;
     }
 
     private function errorMessage(): string
