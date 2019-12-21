@@ -1,7 +1,7 @@
 {
     "name": "silasmontgomery/yts-api-wrapper",
     "description": "An API wrapper for the YTS torrent search API",
-    "version": "1.0.0-dev",
+    "version": "1.0.1-dev",
     "type": "library",
     "license": "MIT",
     "authors": [

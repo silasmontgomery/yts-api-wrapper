@@ -39,7 +39,7 @@ class Api
         ]
     ];
 
-    public function __construct(string $url = "https://yts.ae", array $trackers = [], int $api_version = 2, bool $debug = false)
+    public function __construct(string $url = "https://yts.lt", array $trackers = [], int $api_version = 2, bool $debug = false)
     {
         $this->debug = $debug;
         $this->url = $url;
